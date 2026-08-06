@@ -32,16 +32,19 @@ const PLAN_LIMITS = {
 // Storage public URL 생성
 function getPublicUrl(path) {
   if (!path) return null;
-  const { data } = supabase.storage.from('pet-media').getPublicUrl(path);
-  return data?.publicUrl || null;
+  try {
+    const client = (typeof getSupabase === 'function' ? getSupabase() : null) || supabase;
+    if (client && client.storage) {
+      const { data } = client.storage.from('pet-media').getPublicUrl(path);
+      return data?.publicUrl || null;
+    }
+  } catch (e) {}
+  // fallback
+  return 'https://opwwsrpsqiojghaxjqmr.supabase.co/storage/v1/object/public/pet-media/' + path;
 }
 
-// 에러 메시지 표시
-function showError(message) {
-  alert(message);
-}
-
-// 성공 메시지
-function showSuccess(message) {
-  alert(message);
-}
+// 전역 노출
+window.formatDate = formatDate;
+window.formatFileSize = formatFileSize;
+window.PLAN_LIMITS = PLAN_LIMITS;
+window.getPublicUrl = getPublicUrl;
