@@ -2,19 +2,31 @@
 const SUPABASE_URL = 'https://opwwsrpsqiojghaxjqmr.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wd3dzcnBzcWlvamdoYXhqcW1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4MDY5NjEsImV4cCI6MjEwMTM4Mjk2MX0.jzxk-xgilPXcs7gX96bhvmcBr04Fy6ZB68qu5z0doWg';
 
-// 페이지에서 사용하는 클라이언트
-var sb = null;
+// 라이브러리 백업
+const _supabaseLib = window.supabase;
 
-function getSupabase() {
-  if (sb) return sb;
-  if (window.supabase && typeof window.supabase.createClient === 'function') {
-    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    return sb;
+// 실제 사용하는 클라이언트
+var supabase = null;
+
+function initClient() {
+  if (supabase) return supabase;
+
+  const lib = _supabaseLib || window.supabase;
+  if (lib && typeof lib.createClient === 'function') {
+    supabase = lib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    return supabase;
   }
   return null;
 }
 
-// 현재 로그인한 사용자 가져오기
+// 즉시 시도
+initClient();
+
+function getSupabase() {
+  return initClient();
+}
+
+// ===== 인증 관련 함수 =====
 async function getCurrentUser() {
   const client = getSupabase();
   if (!client) return null;
@@ -22,7 +34,6 @@ async function getCurrentUser() {
   return user;
 }
 
-// 프로필 가져오기 (없으면 생성)
 async function getOrCreateProfile(user) {
   if (!user) return null;
   const client = getSupabase();
@@ -60,14 +71,12 @@ async function getOrCreateProfile(user) {
   return profile;
 }
 
-// 로그아웃
 async function signOut() {
   const client = getSupabase();
   if (client) await client.auth.signOut();
   window.location.href = 'index.html';
 }
 
-// 구글 로그인
 async function signInWithGoogle() {
   const client = getSupabase();
   if (!client) {
@@ -86,23 +95,9 @@ async function signInWithGoogle() {
   }
 }
 
-// 전역 노출 (확실하게)
+// 전역 함수 노출
 window.getCurrentUser = getCurrentUser;
 window.getOrCreateProfile = getOrCreateProfile;
 window.signOut = signOut;
 window.signInWithGoogle = signInWithGoogle;
 window.getSupabase = getSupabase;
-
-// 기존 페이지 코드 호환 (supabase.from 사용 부분)
-Object.defineProperty(window, 'supabase', {
-  get: function() {
-    // 라이브러리인지 클라이언트인지 구분
-    if (sb) return sb;
-    return getSupabase() || window._supabaseLib;
-  },
-  set: function(val) {
-    // CDN이 라이브러리를 넣을 때 저장
-    window._supabaseLib = val;
-  },
-  configurable: true
-});
