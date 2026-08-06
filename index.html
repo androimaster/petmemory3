@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>별빛추모 - 우리 아이를 위한 따뜻한 별빛 공간</title>
   
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -13,27 +12,17 @@
         extend: {
           colors: {
             sky: {
-              50: '#f0f9ff',
-              100: '#e0f2fe',
-              200: '#bae6fd',
-              300: '#7dd3fc',
-              400: '#38bdf8',
-              500: '#0ea5e9',
-              600: '#0284c7',
+              50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc',
+              400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7'
             }
           },
-          fontFamily: {
-            sans: ['Pretendard', 'system-ui', 'sans-serif'],
-          }
+          fontFamily: { sans: ['Pretendard', 'system-ui', 'sans-serif'] }
         }
       }
     }
   </script>
   
-  <!-- Alpine.js -->
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  
-  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <style>
@@ -52,7 +41,6 @@
 </head>
 <body class="font-sans text-slate-700" x-data="app()" x-init="init()" x-cloak>
 
-  <!-- 헤더 -->
   <header class="bg-white/80 backdrop-blur-md border-b border-sky-100 sticky top-0 z-50">
     <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
       <a href="index.html" class="flex items-center gap-2">
@@ -62,96 +50,60 @@
       
       <div class="flex items-center gap-3">
         <form @submit.prevent="search" class="hidden sm:flex items-center">
-          <input 
-            type="text" 
-            x-model="searchQuery"
-            placeholder="반려견 이름으로 검색"
-            class="px-4 py-2 rounded-l-full border border-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-300 text-sm w-48"
-          >
-          <button type="submit" class="bg-sky-500 text-white px-4 py-2 rounded-r-full hover:bg-sky-600 transition">
-            검색
-          </button>
+          <input type="text" x-model="searchQuery" placeholder="반려견 이름으로 검색"
+            class="px-4 py-2 rounded-l-full border border-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-300 text-sm w-48">
+          <button type="submit" class="bg-sky-500 text-white px-4 py-2 rounded-r-full hover:bg-sky-600 transition">검색</button>
         </form>
 
         <template x-if="user">
           <div class="flex items-center gap-3">
             <a href="my-pets.html" class="text-sm text-sky-600 hover:underline">내 추모관</a>
             <span class="text-sm text-slate-500" x-text="profile?.display_name || '사용자'"></span>
-            <button @click="logout" class="text-sm bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full transition">
-              로그아웃
-            </button>
+            <button @click="logout" class="text-sm bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full transition">로그아웃</button>
           </div>
         </template>
         
         <template x-if="!user">
-          <button @click="login" class="bg-sky-500 text-white text-sm px-4 py-2 rounded-full hover:bg-sky-600 transition shadow-sm">
-            구글 로그인
-          </button>
+          <button @click="login" class="bg-sky-500 text-white text-sm px-4 py-2 rounded-full hover:bg-sky-600 transition shadow-sm">구글 로그인</button>
         </template>
       </div>
     </div>
   </header>
 
   <main class="max-w-5xl mx-auto px-4 py-10">
-    
     <section class="text-center mb-16 star-bg py-12 rounded-3xl bg-white/50">
       <div class="text-5xl mb-4">🌟</div>
-      <h1 class="text-3xl sm:text-4xl font-bold text-sky-700 mb-3">
-        우리 아이를 위한<br>따뜻한 별빛 공간
-      </h1>
-      <p class="text-slate-500 mb-8 max-w-md mx-auto">
-        떠나보낸 반려견과의 소중한 추억을<br>
-        사진과 이야기로 간직하세요
-      </p>
+      <h1 class="text-3xl sm:text-4xl font-bold text-sky-700 mb-3">우리 아이를 위한<br>따뜻한 별빛 공간</h1>
+      <p class="text-slate-500 mb-8 max-w-md mx-auto">떠나보낸 반려견과의 소중한 추억을<br>사진과 이야기로 간직하세요</p>
       
       <div class="flex flex-col sm:flex-row gap-3 justify-center items-center">
         <template x-if="user">
-          <a href="create-pet.html" class="bg-sky-500 text-white px-6 py-3 rounded-full font-medium hover:bg-sky-600 transition shadow-md">
-            내 추모관 만들기
-          </a>
+          <a href="create-pet.html" class="bg-sky-500 text-white px-6 py-3 rounded-full font-medium hover:bg-sky-600 transition shadow-md">내 추모관 만들기</a>
         </template>
         <template x-if="!user">
-          <button @click="login" class="bg-sky-500 text-white px-6 py-3 rounded-full font-medium hover:bg-sky-600 transition shadow-md">
-            로그인하고 시작하기
-          </button>
+          <button @click="login" class="bg-sky-500 text-white px-6 py-3 rounded-full font-medium hover:bg-sky-600 transition shadow-md">로그인하고 시작하기</button>
         </template>
         
         <form @submit.prevent="search" class="sm:hidden flex w-full max-w-xs">
-          <input 
-            type="text" 
-            x-model="searchQuery"
-            placeholder="반려견 이름 검색"
-            class="flex-1 px-4 py-3 rounded-l-full border border-sky-200 focus:outline-none text-sm"
-          >
-          <button type="submit" class="bg-sky-500 text-white px-5 py-3 rounded-r-full">
-            검색
-          </button>
+          <input type="text" x-model="searchQuery" placeholder="반려견 이름 검색"
+            class="flex-1 px-4 py-3 rounded-l-full border border-sky-200 focus:outline-none text-sm">
+          <button type="submit" class="bg-sky-500 text-white px-5 py-3 rounded-r-full">검색</button>
         </form>
       </div>
     </section>
 
     <section>
-      <h2 class="text-xl font-bold text-sky-700 mb-6 flex items-center gap-2">
-        <span>✨</span> 최근 등록된 별빛
-      </h2>
+      <h2 class="text-xl font-bold text-sky-700 mb-6 flex items-center gap-2"><span>✨</span> 최근 등록된 별빛</h2>
       
-      <div x-show="loading" class="text-center py-12 text-slate-400">
-        불러오는 중...
-      </div>
-      
-      <div x-show="!loading && recentPets.length === 0" class="text-center py-12 text-slate-400">
-        아직 등록된 추모관이 없습니다.
-      </div>
+      <div x-show="loading" class="text-center py-12 text-slate-400">불러오는 중...</div>
+      <div x-show="!loading && recentPets.length === 0" class="text-center py-12 text-slate-400">아직 등록된 추모관이 없습니다.</div>
       
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" x-show="!loading && recentPets.length > 0">
         <template x-for="pet in recentPets" :key="pet.id">
           <a :href="`pet.html?id=${pet.id}`" class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition border border-sky-50 group">
             <div class="aspect-[4/3] bg-sky-50 overflow-hidden">
-              <img 
-                :src="pet.coverUrl || 'https://placehold.co/400x300/e0f2fe/0ea5e9?text=✨'" 
-                :alt="pet.name"
-                class="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-              >
+              <img :src="pet.coverUrl || 'https://placehold.co/400x300/e0f2fe/0ea5e9?text=✨'" :alt="pet.name"
+                class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
             </div>
             <div class="p-4">
               <h3 class="font-bold text-lg text-slate-800" x-text="pet.name"></h3>
@@ -169,15 +121,12 @@
   <footer class="mt-20 border-t border-sky-100 bg-white/60">
     <div class="max-w-5xl mx-auto px-4 py-8 text-center text-sm text-slate-400">
       <p class="mb-2">✨ 별빛추모 – 우리 아이를 기억하는 따뜻한 공간</p>
-      <p>
-        <a href="#" class="hover:text-sky-500">이용약관</a> · 
-        <a href="#" class="hover:text-sky-500">개인정보처리방침</a>
-      </p>
+      <p><a href="#" class="hover:text-sky-500">이용약관</a> · <a href="#" class="hover:text-sky-500">개인정보처리방침</a></p>
     </div>
   </footer>
 
-  <script src="js/supabase-client.js?v=3"></script>
-  <script src="js/utils.js?v=3"></script>
+  <script src="js/supabase-client.js?v=4"></script>
+  <script src="js/utils.js?v=4"></script>
   <script>
     function app() {
       return {
@@ -188,9 +137,8 @@
         loading: true,
 
         async init() {
-          // 클라이언트가 준비될 때까지 잠시 대기
           let tries = 0;
-          while (!getSupabase() && tries < 20) {
+          while (!getSupabase() && tries < 30) {
             await new Promise(r => setTimeout(r, 100));
             tries++;
           }
@@ -223,10 +171,13 @@
             console.error(error);
             this.recentPets = [];
           } else {
-            this.recentPets = (data || []).map(pet => ({
-              ...pet,
-              coverUrl: pet.cover_path ? getPublicUrl(pet.cover_path) : null
-            }));
+            // Signed URL을 비동기로 생성
+            this.recentPets = await Promise.all(
+              (data || []).map(async (pet) => ({
+                ...pet,
+                coverUrl: pet.cover_path ? await getSignedUrl(pet.cover_path) : null
+              }))
+            );
           }
           this.loading = false;
         },
@@ -236,14 +187,8 @@
           window.location.href = `search.html?q=${encodeURIComponent(this.searchQuery.trim())}`;
         },
 
-        login() {
-          signInWithGoogle();
-        },
-
-        async logout() {
-          await signOut();
-        },
-
+        login() { signInWithGoogle(); },
+        async logout() { await signOut(); },
         formatDate
       }
     }
