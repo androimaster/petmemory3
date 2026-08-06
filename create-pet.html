@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>추모관 만들기 - 별빛추모</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            sky: { 50:'#f0f9ff',100:'#e0f2fe',200:'#bae6fd',300:'#7dd3fc',400:'#38bdf8',500:'#0ea5e9',600:'#0284c7' }
+          }
+        }
+      }
+    }
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    body { background: linear-gradient(180deg, #e0f2fe 0%, #f0f9ff 50%, #fefce8 100%); min-height: 100vh; }
+  </style>
+</head>
+<body class="font-sans text-slate-700" x-data="createPetPage()" x-init="init()" x-cloak>
+
+  <header class="bg-white/80 backdrop-blur-md border-b border-sky-100 sticky top-0 z-50">
+    <div class="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="my-pets.html" class="flex items-center gap-2 text-sky-600">
+        <span>←</span>
+        <span class="font-medium">내 추모관</span>
+      </a>
+      <span class="text-sm text-slate-500" x-text="isEdit ? '추모관 수정' : '새 추모관 만들기'"></span>
+    </div>
+  </header>
+
+  <main class="max-w-2xl mx-auto px-4 py-8">
+    <div class="bg-white rounded-3xl shadow-sm border border-sky-50 p-6 sm:p-8">
+      
+      <form @submit.prevent="save">
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-slate-600 mb-2">대표 사진</label>
+          <div class="flex items-center gap-4">
+            <div class="w-28 h-28 rounded-2xl bg-sky-50 overflow-hidden border-2 border-dashed border-sky-200 flex items-center justify-center">
+              <template x-if="coverPreview">
+                <img :src="coverPreview" class="w-full h-full object-cover">
+              </template>
+              <template x-if="!coverPreview">
+                <span class="text-3xl text-sky-300">📷</span>
+              </template>
+            </div>
+            <div>
+              <input type="file" accept="image/*" @change="onCoverChange" class="text-sm">
+              <p class="text-xs text-slate-400 mt-1">권장: 정사각형 또는 가로 사진</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-5">
+          <label class="block text-sm font-medium text-slate-600 mb-1">반려견 이름 *</label>
+          <input 
+            type="text" 
+            x-model="form.name"
+            required
+            placeholder="예: 초코"
+            class="w-full px-4 py-3 rounded-xl border border-sky-100 focus:outline-none focus:ring-2 focus:ring-sky-300"
+          >
+        </div>
+
+        <div class="mb-5">
+          <label class="block text-sm font-medium text-slate-600 mb-1">품종</label>
+          <input 
+            type="text" 
+            x-model="form.breed"
+            placeholder="예: 말티즈, 포메라니안, 믹스"
+            class="w-full px-4 py-3 rounded-xl border border-sky-100 focus:outline-none focus:ring-2 focus:ring-sky-300"
+          >
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-5">
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">생년월일</label>
+            <input 
+              type="date" 
+              x-model="form.born_on"
+              class="w-full px-4 py-3 rounded-xl border border-sky-100 focus:outline-none focus:ring-2 focus:ring-sky-300"
+            >
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">기일 (떠난 날)</label>
+            <input 
+              type="date" 
+              x-model="form.passed_on"
+              class="w-full px-4 py-3 rounded-xl border border-sky-100 focus:outline-none focus:ring-2 focus:ring-sky-300"
+            >
+          </div>
+        </div>
+
+        <div class="mb-8">
+          <label class="block text-sm font-medium text-slate-600 mb-1">소개글 / 추모 메시지</label>
+          <textarea 
+            x-model="form.story"
+            rows="5"
+            placeholder="우리 아이와의 소중한 추억을 적어주세요..."
+            class="w-full px-4 py-3 rounded-xl border border-sky-100 focus:outline-none focus:ring-2 focus:ring-sky-300 resize-none"
+          ></textarea>
+        </div>
+
+        <div class="flex gap-3">
+          <button 
+            type="submit"
+            :disabled="saving"
+            class="flex-1 bg-sky-500 text-white py-3 rounded-xl font-medium hover:bg-sky-600 transition disabled:opacity-50"
+          >
+            <span x-text="saving ? '저장 중...' : (isEdit ? '수정 완료' : '추모관 만들기')"></span>
+          </button>
+          
+          <template x-if="isEdit">
+            <button 
+              type="button"
+              @click="deletePet"
+              class="px-5 py-3 rounded-xl border border-red-200 text-red-500 hover:bg-red-50 transition text-sm"
+            >
+              삭제
+            </button>
+          </template>
+        </div>
+      </form>
+
+      <div x-show="isEdit" class="mt-8 pt-6 border-t border-sky-50">
+        <a :href="`manage-media.html?id=${petId}`" class="block text-center text-sky-600 hover:underline text-sm">
+          📷 사진/영상 관리하기 →
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/supabase-client.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    function createPetPage() {
+      return {
+        user: null,
+        profile: null,
+        petId: null,
+        isEdit: false,
+        saving: false,
+        coverFile: null,
+        coverPreview: null,
+        form: {
+          name: '',
+          breed: '',
+          born_on: '',
+          passed_on: '',
+          story: ''
+        },
+
+        async init() {
+          this.user = await getCurrentUser();
+          if (!this.user) {
+            alert('로그인이 필요합니다.');
+            window.location.href = 'index.html';
+            return;
+          }
+          this.profile = await getOrCreateProfile(this.user);
+
+          const params = new URLSearchParams(window.location.search);
+          this.petId = params.get('id');
+          
+          if (this.petId) {
+            this.isEdit = true;
+            await this.loadPet();
+          } else {
+            await this.checkLimit();
+          }
+        },
+
+        async checkLimit() {
+          const { count } = await supabase
+            .from('pets')
+            .select('*', { count: 'exact', head: true })
+            .eq('owner_id', this.user.id);
+
+          const max = PLAN_LIMITS[this.profile?.plan || 'free'].maxPets;
+          if (count >= max) {
+            alert(`현재 요금제에서는 추모관을 최대 ${max}개까지 만들 수 있습니다.\n별빛 플러스로 업그레이드 해주세요.`);
+            window.location.href = 'my-pets.html';
+          }
+        },
+
+        async loadPet() {
+          const { data, error } = await supabase
+            .from('pets')
+            .select('*')
+            .eq('id', this.petId)
+            .eq('owner_id', this.user.id)
+            .single();
+
+          if (error || !data) {
+            alert('추모관을 찾을 수 없거나 권한이 없습니다.');
+            window.location.href = 'my-pets.html';
+            return;
+          }
+
+          this.form = {
+            name: data.name || '',
+            breed: data.breed || '',
+            born_on: data.born_on || '',
+            passed_on: data.passed_on || '',
+            story: data.story || ''
+          };
+          
+          if (data.cover_path) {
+            this.coverPreview = getPublicUrl(data.cover_path);
+          }
+        },
+
+        onCoverChange(e) {
+          const file = e.target.files[0];
+          if (!file) return;
+          this.coverFile = file;
+          this.coverPreview = URL.createObjectURL(file);
+        },
+
+        async save() {
+          if (!this.form.name.trim()) {
+            alert('반려견 이름을 입력해주세요.');
+            return;
+          }
+
+          this.saving = true;
+
+          try {
+            let coverPath = null;
+
+            if (this.coverFile) {
+              const ext = this.coverFile.name.split('.').pop();
+              const fileName = `${this.user.id}/${Date.now()}_cover.${ext}`;
+              
+              const { error: uploadError } = await supabase.storage
+                .from('pet-media')
+                .upload(fileName, this.coverFile, { upsert: true });
+
+              if (uploadError) throw uploadError;
+              coverPath = fileName;
+            }
+
+            if (this.isEdit) {
+              const updateData = {
+                name: this.form.name.trim(),
+                breed: this.form.breed.trim() || null,
+                born_on: this.form.born_on || null,
+                passed_on: this.form.passed_on || null,
+                story: this.form.story.trim() || null
+              };
+              if (coverPath) updateData.cover_path = coverPath;
+
+              const { error } = await supabase
+                .from('pets')
+                .update(updateData)
+                .eq('id', this.petId)
+                .eq('owner_id', this.user.id);
+
+              if (error) throw error;
+              alert('수정되었습니다.');
+              window.location.href = `pet.html?id=${this.petId}`;
+            } else {
+              const { data, error } = await supabase
+                .from('pets')
+                .insert({
+                  owner_id: this.user.id,
+                  name: this.form.name.trim(),
+                  breed: this.form.breed.trim() || null,
+                  born_on: this.form.born_on || null,
+                  passed_on: this.form.passed_on || null,
+                  story: this.form.story.trim() || null,
+                  cover_path: coverPath,
+                  is_public: true
+                })
+                .select()
+                .single();
+
+              if (error) throw error;
+              alert('추모관이 만들어졌습니다!');
+              window.location.href = `pet.html?id=${data.id}`;
+            }
+          } catch (err) {
+            console.error(err);
+            alert('저장에 실패했습니다: ' + (err.message || '알 수 없는 오류'));
+          } finally {
+            this.saving = false;
+          }
+        },
+
+        async deletePet() {
+          if (!confirm('정말로 이 추모관을 삭제하시겠습니까?\n사진과 방명록도 모두 삭제됩니다.')) return;
+
+          const { error } = await supabase
+            .from('pets')
+            .delete()
+            .eq('id', this.petId)
+            .eq('owner_id', this.user.id);
+
+          if (error) {
+            alert('삭제에 실패했습니다.');
+          } else {
+            alert('삭제되었습니다.');
+            window.location.href = 'my-pets.html';
+          }
+        }
+      }
+    }
+  </script>
+</body>
+</html>
