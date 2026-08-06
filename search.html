@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>검색 결과 - 별빛추모</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            sky: { 50:'#f0f9ff',100:'#e0f2fe',200:'#bae6fd',300:'#7dd3fc',400:'#38bdf8',500:'#0ea5e9',600:'#0284c7' }
+          }
+        }
+      }
+    }
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    body { background: linear-gradient(180deg, #e0f2fe 0%, #f0f9ff 50%, #fefce8 100%); min-height: 100vh; }
+  </style>
+</head>
+<body class="font-sans text-slate-700" x-data="searchPage()" x-init="init()" x-cloak>
+
+  <header class="bg-white/80 backdrop-blur-md border-b border-sky-100 sticky top-0 z-50">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-2">
+        <span class="text-2xl">✨</span>
+        <span class="text-xl font-bold text-sky-600">별빛추모</span>
+      </a>
+      <a href="index.html" class="text-sm text-sky-600 hover:underline">← 홈으로</a>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 py-10">
+    <h1 class="text-2xl font-bold text-sky-700 mb-2">
+      “<span x-text="query"></span>” 검색 결과
+    </h1>
+    <p class="text-slate-500 mb-8" x-text="loading ? '검색 중...' : `${results.length}마리의 별빛을 찾았습니다`"></p>
+
+    <div x-show="!loading && results.length === 0" class="text-center py-16 text-slate-400">
+      <div class="text-4xl mb-3">🔍</div>
+      <p>검색 결과가 없습니다.</p>
+      <a href="index.html" class="inline-block mt-4 text-sky-500 hover:underline">홈으로 돌아가기</a>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <template x-for="pet in results" :key="pet.id">
+        <a :href="`pet.html?id=${pet.id}`" class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition border border-sky-50 group">
+          <div class="aspect-[4/3] bg-sky-50 overflow-hidden">
+            <img 
+              :src="pet.coverUrl || 'https://placehold.co/400x300/e0f2fe/0ea5e9?text=✨'" 
+              :alt="pet.name"
+              class="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+            >
+          </div>
+          <div class="p-4">
+            <h3 class="font-bold text-lg text-slate-800" x-text="pet.name"></h3>
+            <p class="text-sm text-slate-500 mt-1">
+              <span x-text="pet.breed || '믹스'"></span>
+              <span x-show="pet.passed_on"> · <span x-text="formatDate(pet.passed_on)"></span></span>
+            </p>
+          </div>
+        </a>
+      </template>
+    </div>
+  </main>
+
+  <script src="js/supabase-client.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    function searchPage() {
+      return {
+        query: '',
+        results: [],
+        loading: true,
+
+        async init() {
+          const params = new URLSearchParams(window.location.search);
+          this.query = params.get('q') || '';
+          if (!this.query) {
+            window.location.href = 'index.html';
+            return;
+          }
+          await this.search();
+        },
+
+        async search() {
+          this.loading = true;
+          const { data, error } = await supabase
+            .from('pets')
+            .select('*')
+            .eq('is_public', true)
+            .ilike('name', `%${this.query}%`)
+            .order('created_at', { ascending: false });
+
+          if (error) {
+            console.error(error);
+            this.results = [];
+          } else {
+            this.results = (data || []).map(pet => ({
+              ...pet,
+              coverUrl: pet.cover_path ? getPublicUrl(pet.cover_path) : null
+            }));
+          }
+          this.loading = false;
+        },
+
+        formatDate
+      }
+    }
+  </script>
+</body>
+</html>
