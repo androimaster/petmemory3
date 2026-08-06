@@ -20,10 +20,6 @@
               400: '#38bdf8',
               500: '#0ea5e9',
               600: '#0284c7',
-            },
-            star: {
-              light: '#fefce8',
-              soft: '#fef9c3',
             }
           },
           fontFamily: {
@@ -65,7 +61,6 @@
       </a>
       
       <div class="flex items-center gap-3">
-        <!-- 검색창 (모바일에서는 숨김) -->
         <form @submit.prevent="search" class="hidden sm:flex items-center">
           <input 
             type="text" 
@@ -78,7 +73,6 @@
           </button>
         </form>
 
-        <!-- 로그인 상태 -->
         <template x-if="user">
           <div class="flex items-center gap-3">
             <a href="my-pets.html" class="text-sm text-sky-600 hover:underline">내 추모관</a>
@@ -98,10 +92,8 @@
     </div>
   </header>
 
-  <!-- 메인 -->
   <main class="max-w-5xl mx-auto px-4 py-10">
     
-    <!-- 히어로 섹션 -->
     <section class="text-center mb-16 star-bg py-12 rounded-3xl bg-white/50">
       <div class="text-5xl mb-4">🌟</div>
       <h1 class="text-3xl sm:text-4xl font-bold text-sky-700 mb-3">
@@ -124,7 +116,6 @@
           </button>
         </template>
         
-        <!-- 모바일 검색 -->
         <form @submit.prevent="search" class="sm:hidden flex w-full max-w-xs">
           <input 
             type="text" 
@@ -139,7 +130,6 @@
       </div>
     </section>
 
-    <!-- 최근 추모관 -->
     <section>
       <h2 class="text-xl font-bold text-sky-700 mb-6 flex items-center gap-2">
         <span>✨</span> 최근 등록된 별빛
@@ -176,7 +166,6 @@
     </section>
   </main>
 
-  <!-- 푸터 -->
   <footer class="mt-20 border-t border-sky-100 bg-white/60">
     <div class="max-w-5xl mx-auto px-4 py-8 text-center text-sm text-slate-400">
       <p class="mb-2">✨ 별빛추모 – 우리 아이를 기억하는 따뜻한 공간</p>
@@ -187,8 +176,8 @@
     </div>
   </footer>
 
-  <script src="js/supabase-client.js"></script>
-  <script src="js/utils.js"></script>
+  <script src="js/supabase-client.js?v=3"></script>
+  <script src="js/utils.js?v=3"></script>
   <script>
     function app() {
       return {
@@ -199,6 +188,13 @@
         loading: true,
 
         async init() {
+          // 클라이언트가 준비될 때까지 잠시 대기
+          let tries = 0;
+          while (!getSupabase() && tries < 20) {
+            await new Promise(r => setTimeout(r, 100));
+            tries++;
+          }
+
           this.user = await getCurrentUser();
           if (this.user) {
             this.profile = await getOrCreateProfile(this.user);
@@ -208,7 +204,15 @@
 
         async loadRecentPets() {
           this.loading = true;
-          const { data, error } = await supabase
+          const client = getSupabase();
+          if (!client) {
+            console.error('Supabase client not ready');
+            this.recentPets = [];
+            this.loading = false;
+            return;
+          }
+
+          const { data, error } = await client
             .from('pets')
             .select('*')
             .eq('is_public', true)
