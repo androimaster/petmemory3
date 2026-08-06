@@ -1,12 +1,10 @@
 // 유틸리티 함수
 
-// 날짜 포맷 (YYYY-MM-DD → YYYY.MM.DD)
 function formatDate(dateStr) {
   if (!dateStr) return '-';
   return dateStr.replace(/-/g, '.');
 }
 
-// 파일 크기 포맷
 function formatFileSize(bytes) {
   if (!bytes || bytes === 0) return '0 B';
   const k = 1024;
@@ -15,36 +13,56 @@ function formatFileSize(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
-// 용량 제한 (bytes)
 const PLAN_LIMITS = {
   free: {
     maxPets: 1,
-    maxStorage: 1 * 1024 * 1024 * 1024, // 1GB
+    maxStorage: 1 * 1024 * 1024 * 1024,
     label: '별빛 무료'
   },
   plus: {
     maxPets: 10,
-    maxStorage: 20 * 1024 * 1024 * 1024, // 20GB
+    maxStorage: 20 * 1024 * 1024 * 1024,
     label: '별빛 플러스'
   }
 };
 
-// Storage public URL 생성
-function getPublicUrl(path) {
+/**
+ * Signed URL 생성 (Private 버킷용)
+ * @param {string} path
+ * @param {number} expiresIn 초 단위 (기본 7일)
+ */
+async function getSignedUrl(path, expiresIn = 60 * 60 * 24 * 7) {
   if (!path) return null;
+
   try {
-    const client = (typeof getSupabase === 'function' ? getSupabase() : null) || supabase;
-    if (client && client.storage) {
-      const { data } = client.storage.from('pet-media').getPublicUrl(path);
-      return data?.publicUrl || null;
+    const client = (typeof getSupabase === 'function' ? getSupabase() : null) || (typeof supabase !== 'undefined' ? supabase : null);
+    if (!client || !client.storage) {
+      console.warn('Supabase client not ready');
+      return null;
     }
-  } catch (e) {}
-  // fallback
-  return 'https://opwwsrpsqiojghaxjqmr.supabase.co/storage/v1/object/public/pet-media/' + path;
+
+    const { data, error } = await client.storage
+      .from('pet-media')
+      .createSignedUrl(path, expiresIn);
+
+    if (error) {
+      console.error('Signed URL 생성 실패:', error);
+      return null;
+    }
+    return data?.signedUrl || null;
+  } catch (e) {
+    console.error('getSignedUrl error:', e);
+    return null;
+  }
 }
 
-// 전역 노출
+// 기존 이름 호환 (이제 Promise를 반환합니다)
+function getPublicUrl(path) {
+  return getSignedUrl(path);
+}
+
 window.formatDate = formatDate;
 window.formatFileSize = formatFileSize;
 window.PLAN_LIMITS = PLAN_LIMITS;
+window.getSignedUrl = getSignedUrl;
 window.getPublicUrl = getPublicUrl;
