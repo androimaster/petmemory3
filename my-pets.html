@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>내 추모관 - 별빛추모</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            sky: { 50:'#f0f9ff',100:'#e0f2fe',200:'#bae6fd',300:'#7dd3fc',400:'#38bdf8',500:'#0ea5e9',600:'#0284c7' }
+          }
+        }
+      }
+    }
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    body { background: linear-gradient(180deg, #e0f2fe 0%, #f0f9ff 50%, #fefce8 100%); min-height: 100vh; }
+  </style>
+</head>
+<body class="font-sans text-slate-700" x-data="myPetsPage()" x-init="init()" x-cloak>
+
+  <header class="bg-white/80 backdrop-blur-md border-b border-sky-100 sticky top-0 z-50">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-2">
+        <span class="text-2xl">✨</span>
+        <span class="text-xl font-bold text-sky-600">별빛추모</span>
+      </a>
+      <div class="flex items-center gap-3">
+        <span class="text-sm text-slate-500" x-text="profile?.display_name"></span>
+        <button @click="logout" class="text-sm text-slate-500 hover:text-slate-700">로그아웃</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 py-10">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div>
+        <h1 class="text-2xl font-bold text-sky-700">내 추모관</h1>
+        <p class="text-sm text-slate-500 mt-1">
+          현재 요금제: <span class="font-medium text-sky-600" x-text="planLabel"></span>
+          · 추모관 <span x-text="pets.length"></span> / <span x-text="maxPets"></span>개
+        </p>
+      </div>
+      
+      <div>
+        <template x-if="canCreate">
+          <a href="create-pet.html" class="inline-block bg-sky-500 text-white px-5 py-2.5 rounded-full text-sm font-medium hover:bg-sky-600 transition shadow-sm">
+            + 새 추모관 만들기
+          </a>
+        </template>
+        <template x-if="!canCreate">
+          <div class="text-sm text-amber-600 bg-amber-50 px-4 py-2 rounded-full">
+            추모관 개수가 모두 찼습니다. 
+            <a href="plan.html" class="underline font-medium">별빛 플러스로 업그레이드</a>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <div x-show="loading" class="text-center py-16 text-slate-400">불러오는 중...</div>
+
+    <div x-show="!loading && pets.length === 0" class="text-center py-16 bg-white rounded-3xl border border-sky-50">
+      <div class="text-5xl mb-4">🌟</div>
+      <p class="text-slate-500 mb-6">아직 만든 추모관이 없습니다.</p>
+      <a href="create-pet.html" class="inline-block bg-sky-500 text-white px-6 py-3 rounded-full hover:bg-sky-600 transition">
+        첫 추모관 만들기
+      </a>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" x-show="!loading && pets.length > 0">
+      <template x-for="pet in pets" :key="pet.id">
+        <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-sky-50 group">
+          <a :href="`pet.html?id=${pet.id}`">
+            <div class="aspect-[4/3] bg-sky-50 overflow-hidden">
+              <img 
+                :src="pet.coverUrl || 'https://placehold.co/400x300/e0f2fe/0ea5e9?text=✨'" 
+                :alt="pet.name"
+                class="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+              >
+            </div>
+          </a>
+          <div class="p-4">
+            <h3 class="font-bold text-lg text-slate-800" x-text="pet.name"></h3>
+            <p class="text-sm text-slate-500 mt-1" x-text="pet.breed || '믹스'"></p>
+            <div class="flex gap-2 mt-4">
+              <a :href="`pet.html?id=${pet.id}`" class="flex-1 text-center text-sm bg-sky-50 text-sky-600 py-2 rounded-lg hover:bg-sky-100 transition">
+                보기
+              </a>
+              <a :href="`create-pet.html?id=${pet.id}`" class="flex-1 text-center text-sm bg-slate-50 text-slate-600 py-2 rounded-lg hover:bg-slate-100 transition">
+                관리
+              </a>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </main>
+
+  <script src="js/supabase-client.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    function myPetsPage() {
+      return {
+        user: null,
+        profile: null,
+        pets: [],
+        loading: true,
+
+        get planLabel() {
+          return PLAN_LIMITS[this.profile?.plan || 'free']?.label || '별빛 무료';
+        },
+        get maxPets() {
+          return PLAN_LIMITS[this.profile?.plan || 'free']?.maxPets || 1;
+        },
+        get canCreate() {
+          return this.pets.length < this.maxPets;
+        },
+
+        async init() {
+          this.user = await getCurrentUser();
+          if (!this.user) {
+            alert('로그인이 필요합니다.');
+            window.location.href = 'index.html';
+            return;
+          }
+          this.profile = await getOrCreateProfile(this.user);
+          await this.loadPets();
+          this.loading = false;
+        },
+
+        async loadPets() {
+          const { data, error } = await supabase
+            .from('pets')
+            .select('*')
+            .eq('owner_id', this.user.id)
+            .order('created_at', { ascending: false });
+
+          if (error) {
+            console.error(error);
+            this.pets = [];
+          } else {
+            this.pets = (data || []).map(pet => ({
+              ...pet,
+              coverUrl: pet.cover_path ? getPublicUrl(pet.cover_path) : null
+            }));
+          }
+        },
+
+        async logout() { await signOut(); }
+      }
+    }
+  </script>
+</body>
+</html>
